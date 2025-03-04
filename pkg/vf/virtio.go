@@ -29,6 +29,7 @@ type VirtioInput config.VirtioInput
 type VirtioGPU config.VirtioGPU
 type VirtioBalloon config.VirtioBalloon
 type NetworkBlockDevice config.NetworkBlockDevice
+type DiskBlockStorageConfig config.DiskBlockStorageConfig
 
 type vzNetworkBlockDevice struct {
 	*vz.VirtioBlockDeviceConfiguration
@@ -444,9 +445,32 @@ func AddToVirtualMachineConfig(vmConfig *VirtualMachineConfiguration, dev config
 		return (*VirtioBalloon)(d).AddToVirtualMachineConfig(vmConfig)
 	case *config.NetworkBlockDevice:
 		return (*NetworkBlockDevice)(d).AddToVirtualMachineConfig(vmConfig)
+	case *config.DiskBlockStorageConfig:
+		return (*DiskBlockStorageConfig)(d).AddToVirtualMachineConfig(vmConfig)
 	default:
 		return fmt.Errorf("Unexpected virtio device type: %T", d)
 	}
+}
+
+func (config *DiskBlockStorageConfig) AddToVirtualMachineConfig(vmConfig *VirtualMachineConfiguration) error {
+	if config.BlockDev == "" {
+		return fmt.Errorf("missing mandatory 'blockdev' option for %s device", config.DevName)
+	}
+	f, err := os.Open(config.BlockDev)
+	if err != nil {
+		return fmt.Errorf("device %s open dev error %s", config.DevName, err.Error())
+	}
+	a, err := vz.NewDiskBlockDeviceStorageDeviceAttachment(f, config.ReadOnly, vz.DiskSynchronizationModeFull)
+	if err != nil {
+		return fmt.Errorf("device %s attach error %s", config.DevName, err.Error())
+	}
+	vzdev, err := vz.NewVirtioBlockDeviceConfiguration(a)
+	if err != nil {
+		return err
+	}
+	vmConfig.storageDevicesConfiguration = append(vmConfig.storageDevicesConfiguration, vzdev)
+
+	return nil
 }
 
 func (config *DiskStorageConfig) toVz() (vz.StorageDeviceAttachment, error) {

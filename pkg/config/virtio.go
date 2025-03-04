@@ -203,6 +203,8 @@ func deviceFromCmdLine(deviceOpts string) (VirtioDevice, error) {
 		dev = &VirtioBalloon{}
 	case "nbd":
 		dev = networkBlockDeviceNewEmpty()
+	case "disk-blk":
+		dev = diskBlockNewEmpty()
 	default:
 		return nil, fmt.Errorf("unknown device type: %s", opts[0])
 	}
@@ -816,9 +818,52 @@ type DiskStorageConfig struct {
 	ImagePath string `json:"imagePath,omitempty"`
 }
 
+type DiskBlockStorageConfig struct {
+	StorageConfig
+	BlockDev string `json:"blockdev"`
+}
+
 type NetworkBlockStorageConfig struct {
 	StorageConfig
 	URI string `json:"uri,omitempty"`
+}
+
+func (config *DiskBlockStorageConfig) ToCmdLine() ([]string, error) {
+	if config.BlockDev == "" {
+		return nil, fmt.Errorf("%s devices need the path to a block dev", config.DevName)
+	}
+
+	value := fmt.Sprintf("%s,blockdev=%s", config.DevName, config.BlockDev)
+
+	if config.ReadOnly {
+		value += ",readonly"
+	}
+	return []string{"--device", value}, nil
+}
+
+func (config *DiskBlockStorageConfig) FromOptions(options []option) error {
+	for _, option := range options {
+		switch option.key {
+		case "blockdev":
+			config.BlockDev = option.value
+		case "readonly":
+			if option.value != "" {
+				return fmt.Errorf("unexpected value for disk-blk 'readonly' option: %s", option.value)
+			}
+			config.ReadOnly = true
+		default:
+			return fmt.Errorf("unknown option for %s devices: %s", config.DevName, option.key)
+		}
+	}
+	return nil
+}
+
+func diskBlockNewEmpty() *DiskBlockStorageConfig {
+	return &DiskBlockStorageConfig{
+		StorageConfig: StorageConfig{
+			DevName: "disk-blk",
+		},
+	}
 }
 
 func (config *DiskStorageConfig) ToCmdLine() ([]string, error) {
