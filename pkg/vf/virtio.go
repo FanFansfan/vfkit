@@ -459,7 +459,11 @@ func (config *DiskBlockStorageConfig) AddToVirtualMachineConfig(vmConfig *Virtua
 	}
 	util.GetPrivilege()
 	defer util.DropPrivilege(true)
-	f, err := os.Open(config.BlockDev)
+	flag := os.O_RDWR
+	if config.ReadOnly {
+		flag = os.O_RDONLY
+	}
+	f, err := os.OpenFile(config.BlockDev, flag, 0)
 	if err != nil {
 		return fmt.Errorf("device %s open dev error %s", config.DevName, err.Error())
 	}
