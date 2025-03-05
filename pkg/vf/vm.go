@@ -12,6 +12,7 @@ import (
 
 	"github.com/Code-Hex/vz/v3"
 	"github.com/crc-org/vfkit/pkg/config"
+	"github.com/crc-org/vfkit/pkg/util"
 )
 
 type VirtualMachine struct {
@@ -52,6 +53,7 @@ func (vm *VirtualMachine) Start() error {
 			return err
 		}
 	}
+	util.DropPrivilege(false)
 	return vm.VirtualMachine.Start()
 }
 

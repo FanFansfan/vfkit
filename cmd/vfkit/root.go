@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/crc-org/vfkit/pkg/cmdline"
+	"github.com/crc-org/vfkit/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -55,6 +56,8 @@ func getLogLevel() (logrus.Level, error) {
 }
 
 func Execute() {
+	util.CheckPrivilege()
+	util.DropPrivilege(true)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

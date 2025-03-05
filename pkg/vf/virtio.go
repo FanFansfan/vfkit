@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/crc-org/vfkit/pkg/config"
+	"github.com/crc-org/vfkit/pkg/util"
 
 	"github.com/Code-Hex/vz/v3"
 	log "github.com/sirupsen/logrus"
@@ -456,6 +457,8 @@ func (config *DiskBlockStorageConfig) AddToVirtualMachineConfig(vmConfig *Virtua
 	if config.BlockDev == "" {
 		return fmt.Errorf("missing mandatory 'blockdev' option for %s device", config.DevName)
 	}
+	util.GetPrivilege()
+	defer util.DropPrivilege(true)
 	f, err := os.Open(config.BlockDev)
 	if err != nil {
 		return fmt.Errorf("device %s open dev error %s", config.DevName, err.Error())
